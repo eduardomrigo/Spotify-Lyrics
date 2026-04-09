@@ -2,7 +2,9 @@
 
 A lightweight, always-on-top desktop overlay that displays synced lyrics for your currently playing Spotify track.
 
-Built with [Tauri](https://tauri.app/) (Rust backend) and vanilla HTML/JS frontend.
+Built with [Tauri](https://tauri.app/) (Rust) + vanilla HTML/JS.
+
+![App Screenshot](assets/app-preview.png)
 
 ## Features
 
@@ -16,38 +18,46 @@ Built with [Tauri](https://tauri.app/) (Rust backend) and vanilla HTML/JS fronte
 
 - [Rust](https://rustup.rs/)
 - [Node.js](https://nodejs.org/) (for Tauri CLI)
-- A [Spotify Developer](https://developer.spotify.com/dashboard) application
 
-## Spotify Setup
+## Getting Started
 
-1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create a new application
-3. Add `http://127.0.0.1:8888/callback` as a Redirect URI
-4. Copy the **Client ID** and **Client Secret**
-
-## Installation
+### 1. Clone and install
 
 ```bash
-# Clone the repo
-git clone https://github.com/your-username/Lyrics-Tauri.git
-cd Lyrics-Tauri
-
-# Install JS dependencies
+git clone https://github.com/eduardomrigo/Spotify-Lyrics.git
+cd Spotify-Lyrics
 npm install
+```
 
-# Run in dev mode
+### 2. Create a Spotify App
+
+Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) and create a new application. Add the following Redirect URI in the app settings:
+
+```
+http://127.0.0.1:8888/callback
+```
+
+![Spotify Dashboard](assets/spotify-dashboard.png)
+
+### 3. Run
+
+```bash
 npm run tauri dev
+```
 
-# Build for production
+### 4. Connect
+
+Paste your **Client ID** and **Client Secret** in the app setup screen and click **Conectar**. Play a song on Spotify and the lyrics will appear automatically.
+
+![App Settings](assets/app-settings.png)
+
+## Build
+
+```bash
 npm run tauri build
 ```
 
-## Usage
-
-1. Launch the app
-2. Enter your Spotify **Client ID** and **Client Secret**
-3. Authorize with Spotify via browser
-4. Play a song on Spotify — lyrics will appear automatically
+The installer will be generated in `src-tauri/target/release/bundle/`.
 
 ## License
 
