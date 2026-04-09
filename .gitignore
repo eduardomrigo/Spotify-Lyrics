@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Rust build artifacts
+src-tauri/target/
+
+# Generated schemas (recreated by tauri build)
+src-tauri/gen/
+
+# Environment / secrets
+.env
+.env.*
+config.json
+token.json
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
