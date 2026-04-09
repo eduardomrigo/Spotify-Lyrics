@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Spotify Lyrics</title>
+<style>
+  :root {
+    --accent: #3fb950;
+    --bg-alpha: 0.88;
+    --font-size: 15px;
+    --font-size-active: 18px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: transparent !important;
+    font-family: 'Segoe UI', -apple-system, system-ui, sans-serif;
+    color: #e6edf3;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .container {
+    height: 100%;
+    background: rgba(13, 17, 23, var(--bg-alpha));
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ===== Titlebar ===== */
+  .titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    min-height: 36px;
+    -webkit-app-region: drag;
+  }
+
+  .titlebar-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 1px;
+  }
+
+  .titlebar-btns {
+    display: flex;
+    gap: 6px;
+    -webkit-app-region: no-drag;
+  }
+
+  .titlebar-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 13px;
+    color: rgba(255,255,255,0.3);
+    transition: all 0.2s;
+  }
+  .titlebar-btn:hover {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.7);
+  }
+  .titlebar-btn.close:hover {
+    background: rgba(248, 81, 73, 0.25);
+    color: #f85149;
+  }
+  .titlebar-btn.pin-active { color: var(--accent); }
+
+  /* ===== Track info ===== */
+  .track-info {
+    padding: 2px 18px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .album-art {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .track-meta { overflow: hidden; min-width: 0; }
+
+  .track-name {
+    font-size: 15px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .track-artist {
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+    opacity: 0.85;
+  }
+
+  /* ===== Progress ===== */
+  .progress-wrap { padding: 10px 18px 0; }
+
+  .progress-bar {
+    height: 3px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.15s linear;
+  }
+
+  .progress-time {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: rgba(255,255,255,0.2);
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ===== Lyrics ===== */
+  .lyrics {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 18px 18px;
+    overflow: hidden;
+    gap: 4px;
+  }
+
+  .lyric-line {
+    font-size: var(--font-size);
+    text-align: center;
+    padding: 4px 12px;
+    border-radius: 8px;
+    color: rgba(255,255,255,0.18);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: normal;
+    word-wrap: break-word;
+    max-width: 100%;
+    line-height: 1.6;
+  }
+
+  .lyric-line.active {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: var(--font-size-active);
+    background: rgba(255, 255, 255, 0.04);
+    text-shadow: 0 0 28px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  .lyric-line.past { color: rgba(255,255,255,0.1); }
+  .lyric-line.future { color: rgba(255,255,255,0.32); }
+
+  .empty-state {
+    color: rgba(255,255,255,0.18);
+    font-size: 13px;
+    font-style: italic;
+    text-align: center;
+  }
+
+  /* ===== Setup Screen ===== */
+  .setup-screen {
+    position: absolute;
+    inset: 0;
+    background: rgba(13, 17, 23, 0.98);
+    border-radius: 16px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 200;
+  }
+  .setup-screen.open { display: flex; }
+
+  .setup-icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+  }
+
+  .setup-screen h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+
+  .setup-steps {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.8;
+    margin-bottom: 18px;
+    padding-left: 18px;
+    text-align: left;
+    width: 100%;
+  }
+
+  .setup-steps a {
+    color: var(--accent);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .setup-steps a:hover { text-decoration: underline; }
+
+  .setup-steps code {
+    background: rgba(255,255,255,0.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #ffa657;
+  }
+
+  .setup-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .setup-form input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: #e6edf3;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .setup-form input:focus {
+    border-color: var(--accent);
+  }
+  .setup-form input::placeholder {
+    color: rgba(255,255,255,0.2);
+  }
+
+  .setup-form button {
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    margin-top: 4px;
+  }
+  .setup-form button:hover { opacity: 0.85; }
+  .setup-form button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .setup-error {
+    font-size: 12px;
+    color: #f85149;
+    text-align: center;
+    min-height: 18px;
+  }
+
+  /* ===== Settings Panel ===== */
+  .settings-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(13, 17, 23, 0.96);
+    backdrop-filter: blur(30px);
+    border-radius: 16px;
+    display: none;
+    flex-direction: column;
+    padding: 0;
+    z-index: 100;
+  }
+  .settings-overlay.open { display: flex; }
+
+  .settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    min-height: 42px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .settings-header span {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.5px;
+  }
+
+  .settings-close {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: rgba(255,255,255,0.3);
+    transition: all 0.2s;
+  }
+  .settings-close:hover {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.7);
+  }
+
+  .settings-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .setting-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* Toggle */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .toggle-row .toggle-label {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .toggle {
+    width: 40px;
+    height: 22px;
+    border-radius: 11px;
+    background: rgba(255,255,255,0.1);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.25s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); }
+
+  .toggle-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .toggle.on .toggle-thumb { left: 20px; }
+
+  /* Slider */
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.1);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+
+  .slider-value {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 6px;
+    text-align: right;
+  }
+
+  /* Color dots */
+  .color-options { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .color-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2.5px solid transparent;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .color-dot:hover { transform: scale(1.12); }
+  .color-dot.active { border-color: rgba(255,255,255,0.8); }
+  .color-dot[data-color="#3fb950"] { background: #3fb950; }
+  .color-dot[data-color="#58a6ff"] { background: #58a6ff; }
+  .color-dot[data-color="#bc8cff"] { background: #bc8cff; }
+  .color-dot[data-color="#f778ba"] { background: #f778ba; }
+  .color-dot[data-color="#ffa657"] { background: #ffa657; }
+  .color-dot[data-color="#ff7b72"] { background: #ff7b72; }
+  .color-dot[data-color="#ffffff"] { background: #ffffff; }
+  .color-dot[data-color="#79c0ff"] { background: #79c0ff; }
+
+  /* Lines buttons */
+  .lines-options { display: flex; gap: 8px; }
+
+  .lines-btn {
+    width: 40px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: transparent;
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .lines-btn:hover {
+    border-color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.7);
+  }
+  .lines-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  /* Reset button */
+  .reset-btn {
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    background: transparent;
+    color: #f85149;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover {
+    background: rgba(248, 81, 73, 0.1);
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <!-- Titlebar -->
+    <div class="titlebar">
+      <span class="titlebar-title">SPOTIFY LYRICS</span>
+      <div class="titlebar-btns" id="mainBtns">
+        <div class="titlebar-btn" id="pinBtn" title="Fixar na tela">&#128204;</div>
+        <div class="titlebar-btn" id="settingsBtn" title="Configuracoes">&#9881;</div>
+        <div class="titlebar-btn close" id="closeBtn">&#10005;</div>
+      </div>
+    </div>
+
+    <!-- Track -->
+    <div class="track-info" id="trackInfo" style="display:none">
+      <img class="album-art" id="albumArt" src="">
+      <div class="track-meta">
+        <div class="track-name" id="trackName"></div>
+        <div class="track-artist" id="trackArtist"></div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap" id="progressWrap" style="display:none">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-time">
+        <span id="timeCurrent">0:00</span>
+        <span id="timeTotal">0:00</span>
+      </div>
+    </div>
+
+    <!-- Lyrics -->
+    <div class="lyrics" id="lyricsContainer">
+      <div class="empty-state">Carregando...</div>
+    </div>
+
+    <!-- Setup Screen -->
+    <div class="setup-screen" id="setupScreen">
+      <div class="setup-icon">&#9835;</div>
+      <h2>Spotify Lyrics</h2>
+      <ol class="setup-steps">
+        <li>Acesse <a id="dashboardLink" href="#">developer.spotify.com/dashboard</a></li>
+        <li>Crie um novo app</li>
+        <li>Em Redirect URI, adicione:<br><code>http://127.0.0.1:8888/callback</code></li>
+        <li>Copie o Client ID e Client Secret abaixo</li>
+      </ol>
+      <div class="setup-form">
+        <input type="text" id="inputClientId" placeholder="Client ID" spellcheck="false" autocomplete="off">
+        <input type="text" id="inputClientSecret" placeholder="Client Secret" spellcheck="false" autocomplete="off">
+        <button id="connectBtn">Conectar</button>
+        <div class="setup-error" id="setupError"></div>
+      </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-overlay" id="settingsPanel">
+      <div class="settings-header">
+        <span>Configuracoes</span>
+        <div class="settings-close" id="settingsClose">&#10005;</div>
+      </div>
+      <div class="settings-body">
+
+        <div class="setting-group">
+          <label>Janela</label>
+          <div class="toggle-row">
+            <span class="toggle-label">Fixar na tela (sempre visivel)</span>
+            <div class="toggle" id="pinnedToggle">
+              <div class="toggle-thumb"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label>Opacidade</label>
+          <input type="range" id="opacitySlider" min="40" max="100" step="1">
+          <div class="slider-value" id="opacityValue">88%</div>
+        </div>
+
+        <div class="setting-group">
+          <label>Cor do destaque</label>
+          <div class="color-options" id="colorOptions">
+            <div class="color-dot" data-color="#3fb950"></div>
+            <div class="color-dot" data-color="#58a6ff"></div>
+            <div class="color-dot" data-color="#bc8cff"></div>
+            <div class="color-dot" data-color="#f778ba"></div>
+            <div class="color-dot" data-color="#ffa657"></div>
+            <div class="color-dot" data-color="#ff7b72"></div>
+            <div class="color-dot" data-color="#ffffff"></div>
+            <div class="color-dot" data-color="#79c0ff"></div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label>Linhas visiveis</label>
+          <div class="lines-options" id="linesOptions">
+            <button class="lines-btn" data-lines="3">3</button>
+            <button class="lines-btn" data-lines="5">5</button>
+            <button class="lines-btn" data-lines="7">7</button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label>Tamanho da fonte</label>
+          <input type="range" id="fontSlider" min="10" max="28" step="1">
+          <div class="slider-value" id="fontValue">15px</div>
+        </div>
+
+        <div class="setting-group">
+          <label>Conta</label>
+          <button class="reset-btn" id="resetBtn">Trocar credenciais do Spotify</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

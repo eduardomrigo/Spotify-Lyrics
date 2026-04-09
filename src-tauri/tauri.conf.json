@@ -1,0 +1,36 @@
+{
+  "productName": "Spotify Lyrics",
+  "version": "1.0.0",
+  "identifier": "com.spotifylyrics",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Spotify Lyrics",
+        "width": 420,
+        "height": 420,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "resizable": true,
+        "minWidth": 300,
+        "minHeight": 220
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' https://i.scdn.co https://*.scdn.co; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.ico"
+    ]
+  }
+}
